@@ -1,0 +1,103 @@
+const STORAGE_KEY = 'simple_library_books';
+
+const defaultBooks = [
+  { id: 1, title: 'Database System Concepts', author: 'Silberschatz', category: 'DBMS', status: 'Available', issuedTo: '-' },
+  { id: 2, title: 'Computer Networks', author: 'Kurose', category: 'Networks', status: 'Issued', issuedTo: 'Aman' }
+];
+
+let books = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultBooks;
+
+function saveBooks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+}
+
+function updateStats() {
+  document.getElementById('totalBooks').textContent = books.length;
+  document.getElementById('availableBooks').textContent = books.filter(b => b.status === 'Available').length;
+  document.getElementById('issuedBooks').textContent = books.filter(b => b.status === 'Issued').length;
+}
+
+function renderBooks(list = books) {
+  const tbody = document.getElementById('bookList');
+  tbody.innerHTML = '';
+
+  list.forEach(book => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${book.id}</td>
+      <td>${book.title}</td>
+      <td>${book.author}</td>
+      <td>${book.category}</td>
+      <td class="${book.status === 'Available' ? 'available' : 'issued'}">${book.status}</td>
+      <td>${book.issuedTo}</td>
+      <td>
+        <button class="btn-small" onclick="toggleStatus(${book.id})">
+          ${book.status === 'Available' ? 'Issue' : 'Return'}
+        </button>
+        <button class="btn-small btn-delete" onclick="deleteBook(${book.id})">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateStats();
+}
+
+document.getElementById('bookForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const title = document.getElementById('title').value.trim();
+  const author = document.getElementById('author').value.trim();
+  const category = document.getElementById('category').value.trim();
+  if (!title || !author || !category) return;
+
+  const nextId = books.length ? Math.max(...books.map(b => b.id)) + 1 : 1;
+  books.push({
+    id: nextId,
+    title,
+    author,
+    category,
+    status: 'Available',
+    issuedTo: '-'
+  });
+
+  saveBooks();
+  renderBooks();
+  this.reset();
+});
+
+function toggleStatus(id) {
+  const book = books.find(b => b.id === id);
+  if (!book) return;
+
+  if (book.status === 'Available') {
+    const student = prompt('Student ka naam likhein:');
+    if (!student || !student.trim()) return;
+    book.status = 'Issued';
+    book.issuedTo = student.trim();
+  } else {
+    book.status = 'Available';
+    book.issuedTo = '-';
+  }
+
+  saveBooks();
+  renderBooks();
+}
+
+function deleteBook(id) {
+  books = books.filter(b => b.id !== id);
+  saveBooks();
+  renderBooks();
+}
+
+document.getElementById('search').addEventListener('input', function (e) {
+  const q = e.target.value.toLowerCase();
+  const filtered = books.filter(b =>
+    b.title.toLowerCase().includes(q) ||
+    b.author.toLowerCase().includes(q) ||
+    b.category.toLowerCase().includes(q)
+  );
+  renderBooks(filtered);
+});
+
+saveBooks();
+renderBooks();

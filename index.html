@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Central College Library Management System</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div>
+          <h1>Central College Library Portal</h1>
+          <p>
+            Multi-Department Catalog, Copy Inventory, Roll-No. Tracking & ₹5/Day
+            Fine System
+          </p>
+        </div>
+        <div class="header-actions">
+          <div class="sim-date-box">
+            <label for="simDateInput">Check Date:</label>
+            <input type="date" id="simDateInput" />
+            <button
+              type="button"
+              class="btn-today"
+              onclick="resetToRealToday()"
+            >
+              Use Today
+            </button>
+          </div>
+          <button type="button" class="btn-rules" onclick="toggleRules()">
+            Library Rules
+          </button>
+          <button type="button" class="btn-reset" onclick="resetDemoData()">
+            Reset Full Catalog
+          </button>
+        </div>
+      </header>
+
+      <!-- Collapsible Real-World Rules Banner -->
+      <div id="rulesPanel" class="rules-box">
+        <strong>Standard Library Rules:</strong>
+        <span>1. Max <b>3 books</b> per student (Roll No.) at a time.</span>
+        <span>2. Same book cannot be issued twice to the same student.</span>
+        <span>3. Standard loan period: <b>7 days</b>.</span>
+        <span>4. Late return fine: <b>₹5 per day</b> after due date.</span>
+        <span
+          >5. Change "Check Date" above to test any future or past date.</span
+        >
+      </div>
+
+      <!-- Dashboard Stats -->
+      <div class="stats">
+        <div class="card">
+          <h3>Total Titles / Copies</h3>
+          <p id="totalBooks">0 / 0</p>
+        </div>
+        <div class="card available-card">
+          <h3>Available Copies</h3>
+          <p id="availableBooks">0</p>
+        </div>
+        <div class="card issued-card">
+          <h3>Active Issues</h3>
+          <p id="issuedBooks">0</p>
+        </div>
+        <div class="card fine-card">
+          <h3>Pending Overdue Fine</h3>
+          <p id="pendingFine">₹0</p>
+        </div>
+      </div>
+
+      <!-- Add / Edit Book Form -->
+      <form id="bookForm" class="box">
+        <div class="form-header">
+          <h2 id="formTitle">Add New Book to Catalog</h2>
+          <button
+            type="button"
+            id="cancelEditBtn"
+            class="btn-cancel hidden"
+            onclick="cancelEdit()"
+          >
+            Cancel Edit
+          </button>
+        </div>
+        <input type="hidden" id="editId" />
+        <div class="form-row">
+          <input
+            type="text"
+            id="title"
+            placeholder="Book Title (e.g. Digital Logic Design)"
+            required
+          />
+          <input
+            type="text"
+            id="author"
+            placeholder="Author Name (e.g. Morris Mano)"
+            required
+          />
+          <select id="department" required>
+            <option value="">Select Department</option>
+            <option value="Computer Science (CSE)">
+              Computer Science (CSE)
+            </option>
+            <option value="Information Technology (IT)">
+              Information Technology (IT)
+            </option>
+            <option value="Electronics (ECE)">Electronics (ECE)</option>
+            <option value="Mechanical Engineering">
+              Mechanical Engineering
+            </option>
+            <option value="Civil Engineering">Civil Engineering</option>
+            <option value="Management (BBA/MBA)">Management (BBA/MBA)</option>
+            <option value="Applied Mathematics">Applied Mathematics</option>
+            <option value="Literature & Humanities">
+              Literature & Humanities
+            </option>
+          </select>
+          <input
+            type="text"
+            id="isbn"
+            placeholder="ISBN (e.g. 978-9332549)"
+            required
+          />
+          <input
+            type="text"
+            id="rack"
+            placeholder="Rack No. (e.g. R-CS-04)"
+            required
+          />
+          <input
+            type="number"
+            id="copies"
+            min="1"
+            max="50"
+            value="3"
+            placeholder="Copies"
+            required
+          />
+          <button type="submit" id="submitBtn">+ Add Book</button>
+        </div>
+      </form>
+
+      <!-- 1. Department-Wise Book Catalog -->
+      <div class="box">
+        <div class="top-bar">
+          <div>
+            <h2>Department Book Catalog</h2>
+            <small class="hint"
+              >Filter by department or search by Title, Author, ISBN, or
+              Rack</small
+            >
+          </div>
+          <div class="filter-group">
+            <select id="deptFilter">
+              <option value="All">All Departments</option>
+              <option value="Computer Science (CSE)">
+                Computer Science (CSE)
+              </option>
+              <option value="Information Technology (IT)">
+                Information Technology (IT)
+              </option>
+              <option value="Electronics (ECE)">Electronics (ECE)</option>
+              <option value="Mechanical Engineering">
+                Mechanical Engineering
+              </option>
+              <option value="Civil Engineering">Civil Engineering</option>
+              <option value="Management (BBA/MBA)">Management (BBA/MBA)</option>
+              <option value="Applied Mathematics">Applied Mathematics</option>
+              <option value="Literature & Humanities">
+                Literature & Humanities
+              </option>
+            </select>
+            <select id="availabilityFilter">
+              <option value="All">All Stock</option>
+              <option value="Available">Available Only</option>
+              <option value="OutOfStock">All Copies Issued</option>
+            </select>
+            <input
+              type="text"
+              id="searchCatalog"
+              placeholder="Search title, author, ISBN, rack..."
+            />
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Book ID</th>
+                <th>Title & Author</th>
+                <th>Department</th>
+                <th>ISBN & Rack</th>
+                <th>Copies (Avail / Total)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="catalogBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. Active Student Issue & Overdue Fine Register -->
+      <div class="box">
+        <div class="top-bar">
+          <div>
+            <h2>Student Issue & Fine Register</h2>
+            <small id="registerDateNote" class="hint"
+              >Rule: ₹5/day fine after due date | Max 3 books per Roll
+              No.</small
+            >
+          </div>
+          <div class="filter-group">
+            <select id="issueFilter">
+              <option value="All">All Issued Books</option>
+              <option value="Overdue">Overdue Only (Fine Due)</option>
+              <option value="OnTime">Within Due Date</option>
+            </select>
+            <input
+              type="text"
+              id="searchIssues"
+              placeholder="Search student name, roll no., book..."
+            />
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue ID</th>
+                <th>Student & Roll No.</th>
+                <th>Book Issued</th>
+                <th>Issue / Due Date</th>
+                <th>Status</th>
+                <th>Fine (₹5/day)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="issueBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issue Book Modal -->
+    <div id="issueModal" class="modal hidden">
+      <div class="modal-box">
+        <h3>Issue Book to Student</h3>
+        <p id="issueBookLabel" class="modal-sub"></p>
+
+        <div id="issueError" class="error-banner hidden"></div>
+
+        <label class="field-label" for="studentRollInput"
+          >Student Roll Number</label
+        >
+        <input
+          type="text"
+          id="studentRollInput"
+          placeholder="e.g. CSE-2026-042"
+        />
+
+        <label class="field-label" for="studentNameInput"
+          >Student Full Name</label
+        >
+        <input
+          type="text"
+          id="studentNameInput"
+          placeholder="e.g. Rohan Sharma"
+        />
+
+        <label class="field-label" for="dueDateInput">Return Due Date</label>
+        <input type="date" id="dueDateInput" />
+
+        <div class="quick-days">
+          <button type="button" class="chip" onclick="setDueFromRefDays(7)">
+            +7 Days (Standard)
+          </button>
+          <button type="button" class="chip" onclick="setDueFromRefDays(14)">
+            +14 Days (Exam Ext.)
+          </button>
+          <button
+            type="button"
+            class="chip chip-warn"
+            onclick="setDueFromRefDays(-4)"
+          >
+            4 Days Before Check Date
+          </button>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeIssueModal()">
+            Cancel
+          </button>
+          <button type="button" class="btn-issue" onclick="confirmIssue()">
+            Confirm Issue
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Return & Fine Settlement Modal -->
+    <div id="returnModal" class="modal hidden">
+      <div class="modal-box">
+        <h3>Book Return & Fine Clearance</h3>
+
+        <label class="field-label" for="returnDateInput"
+          >Return Date (Change to test custom return date)</label
+        >
+        <input
+          type="date"
+          id="returnDateInput"
+          onchange="updateReturnSummary()"
+        />
+
+        <div id="returnSummary" class="summary-box"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeReturnModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="confirmReturnBtn"
+            class="btn-return"
+            onclick="confirmReturn()"
+          >
+            Confirm Return
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
